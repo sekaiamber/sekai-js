@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="content-type" content="text/html;charset=utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=Edge">
+	<script type="text/javascript" src="scripts/sekai-0.1/core.js"></script>
+	<script type="text/javascript" src="scripts/sekai.debug.js"></script>
+	<script type="text/javascript">
+	$$.ready(function(){
+		//console.log(document.getElementById("a"));
+		var a = [1,2,3,4,5];
+		console.log(a.max());
+		// console.log("page 1");
+		// ====== 类工厂测试 ======
+		// $$.define("func.a",[], function(c) {
+		// 	var _re = {}
+		// 	_re.init = c;
+		// 	return _re;
+		// });
+		// $$.define("func.b",[], function(c) {
+		// 	var _re = {}
+		// 	_re.init = c;
+		// 	return _re;
+		// });
+		// $$.define("func.c",{
+		// 	"func.a" : [11],
+		// 	"func.b" : ['ssss'],
+		// }, function(a,b,c) {
+		// 	var _re = {}
+		// 	_re.a = a;
+		// 	_re.b = b;
+		// 	_re.c = c;
+		// 	return _re;
+		// });
+		// var aa = $$.entity("func.a")(1);
+		// var bb = $$.entity("func.b")('string');
+		// console.log(aa.init);
+		// console.log(bb.init);
+		// var cot = $$.entity("func.c");
+		// var cc = cot(11.22);
+		// var dd = cot(33.44);
+		// console.log(cc.a.init);
+		// console.log(cc.b.init);
+		// console.log(cc.c);
+		// dd.a.init = 22;
+		// dd.b.init = 'dddd';
+		// console.log(dd.a.init);
+		// console.log(dd.b.init);
+		// console.log(dd.c);
+	});
+	// $$$.ready(function(){
+	// 	//console.log("~~~~~~~~~~~~");
+	// });
+	</script>
+</head>     
+<body>
+	<div id="a"></div>
+	<script type="text/javascript">
+		var a = [1,2,3,4,5];
+		//alert(a.max());
+		//console.log("page 2");
+	</script>
+</body>
+</html>
