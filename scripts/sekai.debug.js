@@ -7,7 +7,8 @@ sekai.using([
 	'./scripts/sekai-0.1/number.js',	// 数字扩展修复模块
 	'./scripts/sekai-0.1/function.js',	// 函数扩展修复模块
 	'./scripts/sekai-0.1/lambda.js',	// lambda模块
-	'./scripts/sekai-0.1/date.js'	// 日期扩展修复模块
+	'./scripts/sekai-0.1/date.js',	// 日期扩展修复模块
+	'./scripts/sekai-0.1/selector.js',	// 选择器模块
 ], function(){
 	/*
 	$$.noConflict();
@@ -58,7 +59,7 @@ sekai.using([
 	console.log($$.trim(fff));
 	*/
 
-	var a = [1,2,3,4,2,3,4];
+	// var a = [1,2,3,4,2,3,4];
 	// console.log(a.forEach(function(e,i,aaa){
 	// 	console.log(e);
 	// 	console.log(i);
@@ -126,8 +127,8 @@ sekai.using([
 	// //console.log($$.convertAll(a, "m=>   m * 2"));
 	// console.log(a.where("m=>m.sex=='F'").select("m=>m.name"));
 
-	var a = new Date(Date.now());
-	console.log(a.toISOString());
+	// var a = new Date(Date.now());
+	// console.log(a.toISOString());
 	// var b = a.add(new TimeSpan(1000));
 	// console.log(b.toISOString());
 	// var c = b.sub(a);
@@ -143,4 +144,6 @@ sekai.using([
 
 	// console.log($$.eventSupport("click"));
 	// console.log($$.cssName("font"));
+
+
 });

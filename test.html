@@ -8,8 +8,8 @@
 	<script type="text/javascript">
 	$$.ready(function(){
 		//console.log(document.getElementById("a"));
-		var a = [1,2,3,4,5];
-		console.log(a.max());
+		// var a = [1,2,3,4,5];
+		// console.log(a.max());
 		// console.log("page 1");
 		// ====== 类工厂测试 ======
 		// $$.define("func.a",[], function(c) {
@@ -47,6 +47,14 @@
 		// console.log(dd.a.init);
 		// console.log(dd.b.init);
 		// console.log(dd.c);
+
+
+
+		// =========选择器测试=========
+		var selector = $$.entity("selector")();
+		var $a = selector(".c");
+		var $b = selector(".b", $a);
+		console.log($b);
 	});
 	// $$$.ready(function(){
 	// 	//console.log("~~~~~~~~~~~~");
@@ -54,7 +62,10 @@
 	</script>
 </head>     
 <body>
-	<div id="a"></div>
+	<div id="a" class="c">
+		<div class="b"></div>
+	</div>
+	<div class="b c"></div>
 	<script type="text/javascript">
 		var a = [1,2,3,4,5];
 		//alert(a.max());
