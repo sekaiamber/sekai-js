@@ -177,7 +177,12 @@
 			};
 		},
 		// 注册模块
-		define: function(name, dependencies, factory) { 
+		define: function(name, dependencies, factory, args) { 
+			if (args) {
+				if (args.initialize && typeof args.initialize == 'function') {
+					args.initialize(this);
+				};
+			};
 			if (!__MODULES__[name]) {
 				var module = fun_getModule(name, dependencies, factory);
 				__MODULES__[name] = module;
