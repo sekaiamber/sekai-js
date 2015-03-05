@@ -150,8 +150,9 @@
 ***********************/
 	var sekai = { 
 		info: __VERSION__,
-
 		noop: noop,
+		rword: /[^, ]+/g,
+
 		// 交还$$符号和sekai符号的控制权
 		noConflict: function(deep) {
 			window.$$ = _$$;

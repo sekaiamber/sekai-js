@@ -52,24 +52,51 @@
 
 		// =========选择器测试=========
 		var selector = $$.entity("selector")();
-		var $a = selector(".c");
-		var $b = selector(".b", $a);
-		console.log($b);
-		var aaaaa = document.getElementById("a");
-		console.log(aaaaa);
-		var aaa = new htmlNode();
-		console.log(aaa);
+		// var $a = selector(".c");
+		// var $b = selector(".b", $a);
+		// console.log($b);
+		// var $idA = selector("#a");
+		// console.log($idA);
+		// var $idA1 = $idA[0];
+		// =========HTML模块测试=========
+		// 插入测试
+		// var a = new htmlNode(selector("#htmlRes1"));
+		// var b = new htmlNode(selector("#htmlRes2"));
+		// var c = new htmlNode(selector("#htmlRes3"));
+		var a = $$.entity("htmlNode")(selector("#htmlRes1"));
+		var b = $$.entity("htmlNode")(selector("#htmlRes2"));
+		var c = $$.entity("htmlNode")(selector("#htmlRes3"));
+		console.log(a);
+		console.log(b);
+		console.log(c);
+		a.append("<div style='color:red;' class='test' s-name='wo'>hehehe</div>");
+
+		// var ac = $$.entity("htmlNodeCollection")(selector(".html-res"));
+		// console.log(ac);
+
+
 	});
 	// $$$.ready(function(){
 	// 	//console.log("~~~~~~~~~~~~");
 	// });
 	</script>
+	<style type="text/css">
+	.html-res
+	{
+		padding-left: 5px;
+	}
+	</style>
 </head>     
 <body>
 	<div id="a" class="c">
 		<div class="b"></div>
 	</div>
 	<div class="b c"></div>
+	<div id="htmlTest" style="border:red solid 1px;height:400px">
+		<div id="htmlRes1" class="html-res">a</div>
+		<div id="htmlRes2" class="html-res">b</div>
+		<div id="htmlRes3" class="html-res">c</div>
+	</div>
 	<script type="text/javascript">
 		var a = [1,2,3,4,5];
 		//alert(a.max());
