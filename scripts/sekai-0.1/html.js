@@ -36,7 +36,8 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 			};
 			parent = tagHooks[tag];
 			parent.innerHTML = ""+html;
-			return [].slice.call(parent.childNodes);
+			// return [].slice.call(parent.childNodes);
+			return parent;
 		}
 		//////// manipulate
 		html.manipulate = function (nodes, name, item, doc){
@@ -51,11 +52,11 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 			} else if(typeof item === 'string') {
 				// 传入字符串片段
 				// 如果方法不是replace，并且不存在嵌套关系的标签
-				var fast = (name !== 'replace' && !rnest.test(item));
+				var fast = (name !== 'replace') && sekai.support[adjacent] && !rnest.test(item);
 				if (!fast) {
 					item = html.parseHTML(item, doc);
 				};
-				insertAdjacentHTML(elems, item, insertHooks[name+"2"], handler);
+				insertAdjacentHTML(elems, item.innerHTML, insertHooks[name+"2"], handler);
 			} else if (item.length) {
 				// 如果传入的是HTMLCollection nodeList
 				insertAdjacentFragment(elems, item, doc, handler);
@@ -78,13 +79,12 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 		function insertAdjacentFragment (elems, item, doc, handler) {
 			var fragment = doc.createDocumentFragment();
 			for (var i = 0, el; el = elems[i]; i++) {
-				handler(el, makeFragment(item, fragment, i > 1));
+				handler(el, makeFragment(item, fragment, i > 0));
 			};
 		};
 		function makeFragment (nodes, fragment, bool) {
 			var ret = fragment.cloneNode(false);
-			var go = !node.item;
-			for (var i = 0, node; node = nodes[i]; go && i++) {
+			for (var i = 0, node; node = nodes[i]; i++) {
 				ret.appendChild(bool && html.cloneNode(node, true, true) || node);
 			};
 			return ret;
@@ -123,7 +123,8 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 		html.cloneNode = function(node, dataAndEvents, deepDataAndEvents) {
 			dataAndEvents = dataAndEvents == null ? false : dataAndEvents;
 			deepDataAndEvents = deepDataAndEvents == null ? dataAndEvents : deepDataAndEvents;
-			if (node.nodeType === 1) {
+			// if (node.nodeType === 1) {
+			if(false) {
 				var neo = html.fixCloneNode(node), // 复制attributes
 					src, neos, i;
 				//====TODO====
@@ -222,16 +223,15 @@ sekai.define("htmlNode", [], function(proto) {
 				if (item.htmlNode) {
 					item = item.dom;
 				} else if (item.htmlNodeCollection) {
-					item = htmlNodeCollection.doms;
+					item = item.doms;
 				};
 				return sekai.html.manipulate([this.dom], method, item, this.dom.ownerDocument);
 			};
 			htmlNode.prototype[method + "To"] = function(item) {
-				if (this.htmlNode) {
+				if (item.htmlNode || item.htmlNodeCollection) {
 					item[method](this);
-				} else {
-					// var selector = sekai.entity("selector")();
-					// sekai.html.manipulate(selector(item, this.dom.ownerDocument), method, this.dom, this.dom.ownerDocument);
+				} else if (item.nodeType) {
+					sekai.html.manipulate(item, method, this.dom, this.dom.ownerDocument);
 				};
 				return this;
 			};
@@ -246,20 +246,39 @@ sekai.define("htmlNode", [], function(proto) {
 function htmlNodeCollection(protos) {
 	if (sekai.isArray(protos)) {
 		for (var i = 0, proto; proto = protos[i]; i++) {
-			this[i] = new htmlNode(protos[i]);
+			this.push(new htmlNode(protos[i]));
 		};
 	} else {
-		this[0] = new htmlNode(protos);
+		this.push(new htmlNode(protos));
 	};
 	this.doms = protos;
 };
 sekai.define("htmlNodeCollection",[], function(protos) {
-	console.log(protos);
 	return new htmlNodeCollection(protos);
 }, {
 	initialize: function(sekai){
 		htmlNodeCollection.prototype = [];
 		htmlNodeCollection.prototype.constructor = htmlNodeCollection;
 		htmlNodeCollection.prototype.htmlNodeCollection = true;
+		'append,prepend,before,after,replace'.replace(sekai.rword, function(method) {
+			htmlNodeCollection.prototype[method] = function(item) {
+				var doc = this.doms[0] ? this.doms[0].ownerDocument : document;
+				if (item.htmlNode) {
+					item = item.dom;
+				} else if (item.htmlNodeCollection) {
+					item = item.doms;
+				};
+				return sekai.html.manipulate(this.doms, method, item, doc);
+			};
+			htmlNodeCollection.prototype[method + "To"] = function(item) {
+				var doc = this.doms[0] ? this.doms[0].ownerDocument : document;
+				if (item.htmlNode || item.htmlNodeCollection) {
+					item[method](this);
+				} else if (item.nodeType) {
+					sekai.html.manipulate(item, method, this.doms,doc);
+				};
+				return this;
+			};
+		});
 	}
 });

@@ -51,7 +51,7 @@
 
 
 		// =========选择器测试=========
-		var selector = $$.entity("selector")();
+		//var selector = $$.entity("selector")();
 		// var $a = selector(".c");
 		// var $b = selector(".b", $a);
 		// console.log($b);
@@ -60,21 +60,25 @@
 		// var $idA1 = $idA[0];
 		// =========HTML模块测试=========
 		// 插入测试
+		var selector = $$.entity("selector")();
 		// var a = new htmlNode(selector("#htmlRes1"));
 		// var b = new htmlNode(selector("#htmlRes2"));
 		// var c = new htmlNode(selector("#htmlRes3"));
 		var a = $$.entity("htmlNode")(selector("#htmlRes1"));
 		var b = $$.entity("htmlNode")(selector("#htmlRes2"));
 		var c = $$.entity("htmlNode")(selector("#htmlRes3"));
-		console.log(a);
-		console.log(b);
-		console.log(c);
-		a.append("<div style='color:red;' class='test' s-name='wo'>hehehe</div>");
-
-		// var ac = $$.entity("htmlNodeCollection")(selector(".html-res"));
+		// console.log(a);
+		// console.log(b);
+		// console.log(c);
+		var ac = $$.entity("htmlNodeCollection")(selector(".html-res2"));
+		var ac2 = $$.entity("htmlNodeCollection")(selector(".html-res3"));
+		var atest = $$.entity("htmlNode")(selector("#htmlRes12"));
 		// console.log(ac);
+		// console.log(atest);
+		//a.append(ac);
+		ac.append("<table><tbody><tr><td>111</td><td>22</td></tr></tbody></table>");
 
-
+		console.log($$.support);
 	});
 	// $$$.ready(function(){
 	// 	//console.log("~~~~~~~~~~~~");
@@ -97,6 +101,18 @@
 		<div id="htmlRes2" class="html-res">b</div>
 		<div id="htmlRes3" class="html-res">c</div>
 	</div>
+	<div id="htmlTest" style="border:red solid 1px;height:400px">
+		<div id="htmlRes11" class="html-res html-res2">a1</div>
+		<div id="htmlRes21" class="html-res html-res2">b2</div>
+		<div id="htmlRes31" class="html-res html-res2">c3</div>
+		<div id="htmlRes41" class="html-res html-res2">d4</div>
+	</div>
+	<div id="htmlTest" style="border:red solid 1px;height:400px">
+		<div id="htmlRes13" class="html-res html-res3">a11</div>
+		<div id="htmlRes23" class="html-res html-res3">b21</div>
+		<div id="htmlRes33" class="html-res html-res3">c31</div>
+	</div>
+	<div id="htmlRes12">This is the test</div>
 	<script type="text/javascript">
 		var a = [1,2,3,4,5];
 		//alert(a.max());
