@@ -89,59 +89,87 @@
 ***********************/
 // domReady
 	var readyList = [];
-	var readyFn, ready = !__IE__ ? "DOMContentLoaded" : "readystatechange";
+	var readyFn;
+	var isFire = false;
+	var ready = !__IE__ ? "DOMContentLoaded" : "readystatechange";
 	var fireReady = function(){
-		for (var i = 0, fn; fn = readyList[i++];) {
-			fn();
-		}
-		readyList = null;
-		fireReady = noop;
+		if (!isFire) {
+			for (var i = 0, fn; fn = readyList[i++];) {
+				fn();
+			}
+			readyList = null;
+			fireReady = noop;
+			isFire = true;
+		};
 	};
 	// for ie, using在readyState=complete之前
 	var doScrollCheck = function(){
-		try{ // ie
-			html.doScroll("left");
+		if (!isFire) {
+			try{ // ie
+				DOC.documentElement.doScroll("left");
+			} catch (e){
+				setTimeout(doScrollCheck);
+				// 在这里return防止fireReady中的错误导致函数重复调用
+				return;
+			}
 			fireReady();
-		} catch (e){
-			setTimeout(doScrollCheck);
-		}
+		};
 	};
 	// for w3c, using在DOMContentLoaded之后
 	var doUsingCheck = function(){
-		// console.log("------doUsingCheck-----");
-		// console.log(__FILE__);
-		for (var file in __FILE__) {
-			if (!__FILE__[file]) {
-				setTimeout(doUsingCheck);
-				return;
+		if (!isFire) {
+			for (var file in __FILE__) {
+				if (!__FILE__[file]) {
+					setTimeout(doUsingCheck);
+					return;
+				};
 			};
+			fireReady();
 		};
-		fireReady();
 	};
+	// 移除绑定事件并执行队列
+ 	var unbindReady = function(){
+		if(DOC.addEventListener){
+			//标准浏览器支持DOMContentLoaded事件
+			DOC.removeEventListener('DOMContentLoaded',unbindReady,false);
+			doUsingCheck();
+		} else if(DOC.attachEvent){
+			if(DOC.readyState === 'complete'){
+				// IE浏览器支持complete事件
+				DOC.detachEvent('onreadystatechange',unbindReady);
+				fireReady();
+			}
+		}
+	}
+
+
 	if (!DOC.readyState) {
 		var readyState = DOC.readyState = DOC.body ? "complete" : "loading";
 	};
 
 	if (DOC.readyState === "complete") {
-		fireReady(); // 在dom之后加载
+		fireReady(); // 在domReady之后加载
 	} else {
-		addListener.call(DOC, ready, readyFn = function () {
-			if (ready == "DOMContentLoaded" || DOC.readyState == "complete") {
-				doUsingCheck();
-				if (readyState) {
-					DOC.readyState = "complete";
-				};
-			};
-		}, false);
-		if (html.doScroll) {
-			try{
-				if (self.eval === parent.eval) {
-					doScrollCheck();
-				};
-			} catch(e) {
-				doScrollCheck();
-			}
-		};
+		if(DOC.addEventListener){
+			// 标准浏览器DOM加载完毕后执行队列，并卸载事件
+			DOC.addEventListener('DOMContentLoaded',unbindReady,false);
+			// 确保会执行
+			window.addEventListener('load',doUsingCheck,false);
+		}else if(DOC.attachEvent){
+			// IE浏览器加载事件变化的时候执行unbindReady
+			DOC.attachEvent('onreadystatechange',unbindReady);
+			// 确保会执行
+			window.attachEvent('onload',fireReady);
+		}
+
+		var toplevel = false; // 是否顶层对象
+		try {
+			toplevel = window.frameElement == null;
+		} catch(e) {}
+		if (DOC.documentElement.doScroll && toplevel) {
+			// IE通过判断doScroll，在onreadystatechange = 'complete' 之前执行
+			doScrollCheck();
+		}
 	};
 
 
@@ -152,6 +180,7 @@
 		info: __VERSION__,
 		noop: noop,
 		rword: /[^, ]+/g,
+		DOC: DOC,
 
 		// 交还$$符号和sekai符号的控制权
 		noConflict: function(deep) {
@@ -172,9 +201,7 @@
 			if (readyList) {
 				readyList.push(fn);
 			} else {
-				if(sekai.isFunction(fn)){
-					fn();
-				};
+				fn();
 			};
 		},
 		// 注册模块

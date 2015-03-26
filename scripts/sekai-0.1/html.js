@@ -9,35 +9,102 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 		var html = {};
 		html.supportAdjacent = false;
 		var rnest = /<(?:tb|td|tf|th|tr|col|opt|leg|cap|area)/;
+		var rxhtml = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig;
+		var rcreate = sekai.support.noscope ? /(<(?:script|link|style|meta|noscript))/ig : /[^\d\D]/;
 		var adjacent = "insertAdjacentHTML";
 		var TAGS = "getElementsByTagName";
+		var rtagName = /<([\w:]+)/;
 		//////// parseHTML
-		var _table = document.createElement('table');
-		var _tr = document.createElement('tr');
-		var _select = document.createElement('select');
+		// 这部分源自mass，是从JQuery来的。
 		var tagHooks = {
-			option: _select,
-			thead: _table,
-			tfoot: _table,
-			tbody: _table,
-			td: _tr,
-			th: _tr,
-			tr: document.createElement('tbody'),
-			col: document.createElement('colgroup'),
-			legend: document.createElement('fieldset'),
-			"*": document.createElement('div')
+			area: [1, "<map>"],
+			param: [1, "<object>"],
+			col: [2, "<table><tbody></tbody><colgroup>", "</table>"],
+			legend: [1, "<fieldset>"],
+			option: [1, "<select multiple='multiple'>"],
+			thead: [1, "<table>", "</table>"],
+			tr: [2, "<table><tbody>"],
+			td: [3, "<table><tbody><tr>"],
+			//IE6-8在用innerHTML生成节点时，不能直接创建no-scope元素与HTML5的新标签
+			_default: sekai.support.noscope ? [1, "X<div>"] : [0, ""] //div可以不用闭合
 		};
-		html.parseHTML = function(html, tag){
-			var parent;
-			if (tag == null) {
-				tag = '*';
-			} else if (!(tag in tagHooks)) {
-				tag = '*';
-			};
-			parent = tagHooks[tag];
-			parent.innerHTML = ""+html;
-			// return [].slice.call(parent.childNodes);
-			return parent;
+		try {
+            var range = sekai.DOC.createRange();
+            range.selectNodeContents(body.firstChild || body); 
+            //fix opera(9.2~11.51) bug,必须对文档进行选取，尽量只选择一个很小范围
+            support.fastFragment = !! range.createContextualFragment("<a>");
+            sekai.cachedRange = range;
+        } catch(e) {};
+		html.parseHTML = function(_html, doc){
+			doc = doc || this.nodeType === 9 && this || document;
+			_html = sekai.trim(_html.replace(rxhtml, "<$1></$2>"));
+			//尝试使用createContextualFragment获取更高的效率
+			//http://www.cnblogs.com/rubylouvre/archive/2011/04/15/2016800.html
+			if (sekai.cachedRange && doc === document && !rcreate.test(_html) && !rnest.test(_html)) {
+				return $.cachedRange.createContextualFragment(_html);
+			}
+			if (sekai.support.noscope) { //fix IE
+				_html = _html.replace(rcreate, "<br class=fix_noscope>$1"); //在link style script等标签之前添加一个补丁
+			}
+			var tag = (rtagName.exec(_html) || ["", ""])[1].toLowerCase(),
+			//取得其标签名
+			wrap = tagHooks[tag] || tagHooks._default,
+			fragment = doc.createDocumentFragment(),
+			wrapper = doc.createElement("div"),
+			firstChild;
+			wrapper.innerHTML = wrap[1] + _html + (wrap[2] || "");
+			var els = wrapper[TAGS]("script");
+			if (els.length) { //使用innerHTML生成的script节点不会发出请求与执行text属性
+				var script = doc.createElement("script"), neo;
+				for (var i = 0, el; el = els[i++]; ) {
+					if (!el.type || types[el.type]) { //如果script节点的MIME能让其执行脚本
+						neo = script.cloneNode(false); //FF不能省略参数
+						for (var j = 0, attr; attr = el.attributes[j++]; ) {
+							if (attr.specified) { //复制其属性
+								neo[attr.name] = attr.value;
+							}
+						}
+						neo.text = el.text; //必须指定,因为无法在attributes中遍历出来
+						el.parentNode.replaceChild(neo, el); //替换节点
+					}
+				}
+			}
+			//移除我们为了符合套嵌关系而添加的标签
+			for (i = wrap[0]; i--; wrapper = wrapper.lastChild) {};
+			html.fixParseHTML(wrapper, _html);
+			while (firstChild = wrapper.firstChild) { // 将wrapper上的节点转移到文档碎片上！
+				fragment.appendChild(firstChild);
+			}
+			return fragment;
+		}
+		html.fixParseHTML = function(wrapper, html) {
+			if (sekai.support.noscope) { //移除所有br补丁
+				for (els = wrapper["getElementsByTagName"]("br"), i = 0; el = els[i++];) {
+					if (el.className && el.className === "fix_noscope") {
+						el.parentNode.removeChild(el);
+					}
+				}
+			}
+			//当我们在生成colgroup, thead, tfoot时 IE会自作多情地插入tbody节点
+			if (!sekai.support.insertTbody) {
+				var noTbody = !rtbody.test(html),
+					//矛:html本身就不存在<tbody字样
+					els = wrapper["getElementsByTagName"]("tbody");
+				if (els.length > 0 && noTbody) { //盾：实际上生成的NodeList中存在tbody节点
+					for (var i = 0, el; el = els[i++];) {
+						if (!el.childNodes.length) //如果是自动插入的里面肯定没有内容
+						el.parentNode.removeChild(el);
+					}
+				}
+			}
+			//IE67没有为它们添加defaultChecked
+			if (!sekai.support.appendChecked) {
+				for (els = wrapper["getElementsByTagName"]("input"), i = 0; el = els[i++];) {
+					if (el.type === "checkbox" || el.type === "radio") {
+						el.defaultChecked = el.checked;
+					}
+				}
+			}
 		}
 		//////// manipulate
 		html.manipulate = function (nodes, name, item, doc){
@@ -56,7 +123,7 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 				if (!fast) {
 					item = html.parseHTML(item, doc);
 				};
-				insertAdjacentHTML(elems, item.innerHTML, insertHooks[name+"2"], handler);
+				insertAdjacentHTML(elems, item, insertHooks[name+"2"], handler);
 			} else if (item.length) {
 				// 如果传入的是HTMLCollection nodeList
 				insertAdjacentFragment(elems, item, doc, handler);
@@ -203,6 +270,7 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 	}
 });
 
+
 //////////////////////////////////
 // htmlNode
 //////////////////////////////////
@@ -211,6 +279,8 @@ function htmlNode(proto) {
 		this.dom = proto;
 	} else if (sekai.isArray(proto) && proto[0] && proto[0].nodeType) {
 		this.dom = proto[0];
+	} else if (typeof proto === 'string') {
+		this.dom = sekai.html.parseHTML(proto, sekai.DOC).childNodes[0];
 	};
 };
 sekai.define("htmlNode", [], function(proto) {
@@ -244,14 +314,22 @@ sekai.define("htmlNode", [], function(proto) {
 // htmlNodeCollection
 //////////////////////////////////
 function htmlNodeCollection(protos) {
+	this.doms = [];
 	if (sekai.isArray(protos)) {
 		for (var i = 0, proto; proto = protos[i]; i++) {
-			this.push(new htmlNode(protos[i]));
+			this.push(new htmlNode(proto));
 		};
-	} else {
+	} else if(protos.nodeType) {
 		this.push(new htmlNode(protos));
+	} else if (typeof protos === 'string') {
+		var fragment = sekai.html.parseHTML(protos, sekai.DOC).childNodes;
+		for (var i = 0, proto; proto = fragment[i]; i++) {
+			this.push(new htmlNode(proto));
+		};
 	};
-	this.doms = protos;
+	for (var i = 0, node; node = this[i]; i++) {
+		this.doms.push(node.dom);
+	};
 };
 sekai.define("htmlNodeCollection",[], function(protos) {
 	return new htmlNodeCollection(protos);

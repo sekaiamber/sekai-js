@@ -73,12 +73,18 @@
 		var ac = $$.entity("htmlNodeCollection")(selector(".html-res2"));
 		var ac2 = $$.entity("htmlNodeCollection")(selector(".html-res3"));
 		var atest = $$.entity("htmlNode")(selector("#htmlRes12"));
+		var atestcreate = $$.entity("htmlNode")("<div><div>111</div><div>111222</div></div>");
+		var atestcreate2 = $$.entity("htmlNodeCollection")(atestcreate.dom);
+		var atestcreate3 = $$.entity("htmlNodeCollection")(['<div>111</div>', '<div>222</div>']);
+		var atestcreate4 = $$.entity("htmlNodeCollection")('<div class="html-res">111</div><div class="html-res">222</div>');
 		// console.log(ac);
 		// console.log(atest);
 		//a.append(ac);
-		ac.append("<table><tbody><tr><td>111</td><td>22</td></tr></tbody></table>");
+		// ac.append("<table><tbody><tr><td>111</td><td>22</td></tr></tbody></table><table><tbody><tr><td>111</td><td>22</td></tr></tbody></table>");
+		// ac.append("<div>111</div><div>111222</div>");
+		// console.log(atestcreate4);
+		ac.append(atestcreate4);
 
-		console.log($$.support);
 	});
 	// $$$.ready(function(){
 	// 	//console.log("~~~~~~~~~~~~");
