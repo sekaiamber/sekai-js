@@ -8,11 +8,11 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 	initialize: function(sekai){
 		var html = {};
 		html.supportAdjacent = false;
-		var rnest = /<(?:tb|td|tf|th|tr|col|opt|leg|cap|area)/;
-		var rxhtml = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig;
-		var rcreate = sekai.support.noscope ? /(<(?:script|link|style|meta|noscript))/ig : /[^\d\D]/;
+		var rnest = html.rnest = /<(?:tb|td|tf|th|tr|col|opt|leg|cap|area)/;
+		var rxhtml = html.rxhtml = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig;
+		var rcreate = html.rcreate = sekai.support.noscope ? /(<(?:script|link|style|meta|noscript))/ig : /[^\d\D]/;
 		var adjacent = "insertAdjacentHTML";
-		var TAGS = "getElementsByTagName";
+		var TAGS = html.TAGS = "getElementsByTagName";
 		var rtagName = /<([\w:]+)/;
 		//////// parseHTML
 		// 这部分源自mass，是从JQuery来的。
@@ -29,12 +29,12 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 			_default: sekai.support.noscope ? [1, "X<div>"] : [0, ""] //div可以不用闭合
 		};
 		try {
-            var range = sekai.DOC.createRange();
-            range.selectNodeContents(body.firstChild || body); 
-            //fix opera(9.2~11.51) bug,必须对文档进行选取，尽量只选择一个很小范围
-            support.fastFragment = !! range.createContextualFragment("<a>");
-            sekai.cachedRange = range;
-        } catch(e) {};
+			var range = sekai.DOC.createRange();
+			range.selectNodeContents(body.firstChild || body); 
+			//fix opera(9.2~11.51) bug,必须对文档进行选取，尽量只选择一个很小范围
+			support.fastFragment = !! range.createContextualFragment("<a>");
+			sekai.cachedRange = range;
+		} catch(e) {};
 		html.parseHTML = function(_html, doc){
 			doc = doc || this.nodeType === 9 && this || document;
 			_html = sekai.trim(_html.replace(rxhtml, "<$1></$2>"));
@@ -248,7 +248,7 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 		};
 		var unknownTag = "<?XML:NAMESPACE";
 		html.fixCloneNode = function(node) {
-			if ( // sekai.support.cloneHTML5 && //====TODO====增加判定是否支持cloneHTML5
+			if ( sekai.support.cloneHTML5 && //====TODO====增加判定是否支持cloneHTML5
 				node.outerHTML) {
 				var outerHTML = document.createElement(node.nodeName).outerHTML;
 				var bool = outerHTML.indexOf(unknownTag);
@@ -262,6 +262,73 @@ sekai.define("html", ["__CORE__"], function(_c_){}, {
 			for (var i = 0; i < src[i]; i++) {
 				fixNode(neos[i], src[i]);
 			};
+		};
+
+		/////// Clean node
+		html.cleanNode = function(node) {
+			// ====TODO====移除数据及属性
+
+		};
+
+		/////// innerHtml, innerText, outerHTML等，凡是需要逐个检索node元素的函数的共同入口
+		html.accessNode = function(elems, callback, directive, args) {
+			//用于统一配置多态方法的读写访问，涉及方法有text, html, outerHTML,data, attr, prop, val, css
+			var length = elems.htmlNode ? 1 : elems.length,
+				key = args[0],
+				value = args[1];
+			//读方法
+			if (args.length === 0 || args.length === 1 && typeof directive === "string") {
+				var first = elems.htmlNode ? elems : elems[0];//由于只有一个回调，我们通过this == $判定读写
+				return first && first.dom.nodeType === 1 ? callback.call(sekai, first, key) : void 0;
+			} else {
+			//写方法
+				if (directive === null) {
+					callback.call(elems, args);
+				} else {
+					if (typeof key === "object") {
+						for (var k in key) { //为所有元素设置N个属性
+							for (var i = 0; i < length; i++) {
+								callback.call(elems, elems[i], k, key[k]);
+							}
+						}
+					} else {
+						for (i = 0; i < length; i++) {
+							callback.call(elems, elems[i], key, value);
+						}
+					}
+				}
+			}
+			return elems;//返回自身，链式操作
+		};
+		// 兼容XML
+		html.innerHTML = function(el) { 
+			for (var i = 0, c, ret = []; c = el.childNodes[i++]; ) {
+				ret.push(outerHTML(c));
+			}
+			return ret.join("");
+		};
+		html.getText = function(els) {
+			for(var i = 0, ret = "", node; node = els[i++];) {
+				// 处理文本结点与CDATA内容
+				if (node.nodeType === 3 || node.nodeType === 4) {
+					ret += node.nodeValue;
+				} else if (node.nodeType !== 8) {
+					ret += getText(node.childNodes);
+				};
+			}
+			return ret;
+		};
+		html.outerHTML = function(el) {
+			switch (el.nodeType + "") {
+				case "1":
+				case "9":
+					return "xml" in el ? el.xml : new XMLSerializer().serializeToString(el);
+				case "3":
+				case "4":
+					return el.nodeValue;
+				default:
+					return "";
+			}
 		};
 
 		sekai.mix(sekai, {
@@ -306,7 +373,74 @@ sekai.define("htmlNode", [], function(proto) {
 				return this;
 			};
 		});
-		window.htmlNode = htmlNode;
+		'remove,empty,detach'.replace(sekai.rword, function(method) {
+			htmlNode.prototype[method] = function() {
+				var isRemove = method !== "empty";
+				if (this.dom.nodeType === 1) {
+					var array = sekai.toArray(this.dom[sekai.html.TAGS]("*")).concat(isRemove ? this.dom : []);
+					if (method !== "detach") {
+						array.forEach(sekai.html.cleanNode);
+					};
+				};
+				if (isRemove) {
+					if (this.dom.parentNode) {
+						this.dom.parentNode.removeChild(this.dom);
+						this.dom = null;
+					};
+				} else {
+					while(this.dom.firstChild) {
+						this.dom.removeChild(this.dom.firstChild);
+					}
+				};
+				return this;
+			}
+		});
+		//取得或设置节点的innerHTML属性
+		htmlNode.prototype.html = function(item) { 
+			return sekai.html.accessNode(this, function(el, value) {
+				if (this === sekai) { //getter 这里兼容XML
+					return "innerHTML" in el.dom ? el.dom.innerHTML : sekai.html.innerHTML(el);
+				} else { //setter
+					value = item == null ? "" : item + ""; //如果item为null, undefined转换为空字符串，其他强制转字符串
+					//接着判断innerHTML属性是否符合标准,不再区分可读与只读
+					//用户传参是否包含了script style meta等不能用innerHTML直接进行创建的标签
+					//及像col td map legend等需要满足套嵌关系才能创建的标签, 否则会在IE与safari下报错
+					if (sekai.support.innerHTML && (!sekai.html.rcreate.test(value) && !sekai.html.rnest.test(value))) {
+						try {
+							el.dom.innerHTML = value;
+							return;
+						} catch (e) {	};
+					}
+					this.empty().append(value);
+				}
+			}, null, arguments);
+		};
+		// 取得或设置节点的text或innerText或textContent属性
+		htmlNode.prototype.text = function(item) {
+			return sekai.html.accessNode(this, function(el) {
+				el = el.dom ? el.dom : el.doms ? el.doms : el;
+				var tar = this.dom ? this.dom.ownerDocument : this.doms ? this.doms[0].ownerDocument : this;
+				if (this === sekai) { //getter
+					if (el.tagName === "SCRIPT") {
+						return el.text;//IE6-8下只能用innerHTML, text获取内容
+					}
+					return el.textContent || el.innerText || sekai.html.getText([el]);
+				} else { //setter
+					this.empty().append(tar.createTextNode(item));
+				}
+			}, null, arguments);
+		};
+		// 取得或设置节点的outerHTML
+		htmlNode.prototype.outerHTML = function(item) { 
+			return sekai.html.accessNode(this, function(el) {
+				el = el.dom ? el.dom : el.doms ? el.doms : el;
+				if (this === sekai) { //getter
+					return "outerHTML" in el ? el.outerHTML : sekai.html.outerHTML(el);
+				} else { //setter
+					this.empty().replace(item);
+				}
+			}, null, arguments);
+		}
 	}
 });
 
@@ -358,5 +492,46 @@ sekai.define("htmlNodeCollection",[], function(protos) {
 				return this;
 			};
 		});
+		'remove,empty,detach'.replace(sekai.rword, function(method) {
+			htmlNodeCollection.prototype[method] = function() {
+				for(var i = 0, node; node = this[i++];) {
+					node[method]();
+				};
+				return this;
+			}
+		});
+		htmlNodeCollection.prototype.html = function(item) { //取得或设置节点的innerHTML属性
+			return sekai.html.accessNode(this, function(el, value) {
+				if (this === sekai) { //getter 这里兼容XML
+					return "innerHTML" in el.dom ? el.dom.innerHTML : sekai.html.innerHTML(el);
+				} else { //setter
+					value = item == null ? "" : item + ""; 
+					if (sekai.support.innerHTML && (!sekai.html.rcreate.test(value) && !sekai.html.rnest.test(value))) {
+						try {
+							for (var i = 0; el = this[i++]; ) {
+								el.dom.innerHTML = value;
+							};
+							return;
+						} catch (e) {	};
+					}
+					this.empty().append(value);
+				}
+			}, null, arguments);
+		};
+		htmlNodeCollection.prototype.text = function(item) {
+			if (item) {
+				return htmlNode.prototype.text.call(this, item);	
+			} else {
+				return htmlNode.prototype.text.call(this);
+			};
+		};
+		htmlNodeCollection.prototype.outerHTML = function(item) {
+			if (item) {
+				return htmlNode.prototype.outerHTML.call(this, item);	
+			} else {
+				return htmlNode.prototype.outerHTML.call(this);
+			};
+		};
+
 	}
 });
